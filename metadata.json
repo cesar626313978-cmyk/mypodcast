@@ -1,0 +1,7 @@
+{
+  "name": "AutoVideo Studio - Coste $0 YouTube & Podcast Automation",
+  "description": "Sistema autónomo de generación diaria y publicación automática de Podcasts y Videos (YouTube Shorts 9:16 y Horizontal 16:9) con coste operativo $0.00 USD.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
