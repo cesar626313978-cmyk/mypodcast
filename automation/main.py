@@ -26,11 +26,14 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 
 # =====================================================================
-# 1. GENERACIÓN DE GUIÓN + SEO SIN DUPLICADOS (Gemini 1.5 Pro)
+# 1. GENERACIÓN DE GUIÓN + SEO SIN DUPLICADOS (Gemini Flash)
 # =====================================================================
 def redactar_guion_anti_duplicados(prompt_maestro: str, keywords_nicho: str, titulos_previos: list) -> dict:
-    print("[*] Contactando a Gemini 1.5 Pro para guión de alto CTR y paquete SEO...")
-    model = genai.GenerativeModel("gemini-1.5-pro")
+    print("[*] Contactando a Gemini Flash para guión de alto CTR y paquete SEO...")
+    try:
+        model = genai.GenerativeModel("gemini-3.8-flash")
+    except Exception:
+        model = genai.GenerativeModel("gemini-flash-latest")
     
     lista_exclusion = "\n".join([f"- {t}" for t in titulos_previos]) if titulos_previos else "Ninguno previo."
 

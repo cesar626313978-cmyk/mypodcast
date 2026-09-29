@@ -278,19 +278,41 @@ export default function App() {
           texto: 'Configuración y reglas de SEO actualizadas en la base de datos.',
         });
       } else {
+        const isDummy = creds.url?.includes('dummy');
+        const isMissingTable =
+          error.message?.includes('schema cache') || error.message?.includes('Could not find the table');
+
+        let msg = `Error en Supabase: ${error.message}`;
+        if (isMissingTable) {
+          msg = `⚠️ Conexión exitosa, pero falta crear las tablas en tu Supabase. Ve a la pestaña "Despliegue & Código", copia el script SQL y ejecútalo en el SQL Editor de Supabase.`;
+        } else if (isDummy) {
+          msg += ' (Error esperado con credenciales dummy)';
+        }
+
         setMensajeEstado({
           tipo: 'error',
-          texto: `Error de conexión con Supabase (${creds.url || 'servidor'}): ${error.message || 'Host ficticio o inalcanzable'}. (Error normal con credenciales dummy)`,
+          texto: msg,
         });
       }
     } catch (err: any) {
+      const isDummy = creds.url?.includes('dummy');
+      const isMissingTable =
+        err?.message?.includes('schema cache') || err?.message?.includes('Could not find the table');
+
+      let msg = `Error de conexión con Supabase: ${err?.message || 'Failed to fetch'}`;
+      if (isMissingTable) {
+        msg = `⚠️ Conexión exitosa, pero falta crear las tablas en tu Supabase. Ve a la pestaña "Despliegue & Código", copia el script SQL y ejecútalo en el SQL Editor de Supabase.`;
+      } else if (isDummy) {
+        msg += ' (Error esperado con credenciales dummy)';
+      }
+
       setMensajeEstado({
         tipo: 'error',
-        texto: `Error de conexión con Supabase (${creds.url || 'servidor'}): ${err?.message || 'Failed to fetch'}. (Error normal con credenciales dummy)`,
+        texto: msg,
       });
     } finally {
       setGuardando(false);
-      setTimeout(() => setMensajeEstado(null), 5000);
+      setTimeout(() => setMensajeEstado(null), 7000);
     }
   };
 
@@ -361,7 +383,17 @@ export default function App() {
       ]);
 
       if (insertRes.error) {
-        throw new Error(`Fallo al registrar en Supabase (${creds.url}): ${insertRes.error.message || 'Host ficticio inalcanzable'}`);
+        const isMissingTable =
+          insertRes.error.message?.includes('schema cache') ||
+          insertRes.error.message?.includes('Could not find the table');
+        if (isMissingTable) {
+          throw new Error(
+            `Falta crear la tabla 'publicaciones' en Supabase. Ejecuta el script SQL en el SQL Editor de Supabase.`
+          );
+        }
+        throw new Error(
+          `Fallo al registrar en Supabase (${creds.url}): ${insertRes.error.message || 'Error de base de datos'}`
+        );
       }
 
       // 4. Trigger GitHub Actions workflow
@@ -378,13 +410,14 @@ export default function App() {
         texto: 'Pipeline despachado correctamente.',
       });
     } catch (err: any) {
+      const isDummy = creds.url?.includes('dummy');
       setMensajeEstado({
         tipo: 'error',
-        texto: `Error de conexión: ${err?.message || 'Failed to fetch'}. (Error normal al usar variables dummy)`,
+        texto: isDummy ? `${err?.message} (Modo dummy activo)` : `${err?.message}`,
       });
     } finally {
       setDisparando(false);
-      setTimeout(() => setMensajeEstado(null), 6000);
+      setTimeout(() => setMensajeEstado(null), 7000);
     }
   };
 
@@ -787,7 +820,7 @@ export default function App() {
                     Parámetros del Motor de Contenido
                   </h1>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Configuración de síntesis con Gemini 1.5 Pro, locución Google Cloud Text-to-Speech (Studio & Neural2) y metadatos SEO.
+                    Configuración de síntesis con Gemini 3.8 Flash, locución Google Cloud Text-to-Speech (Studio & Neural2) y metadatos SEO.
                   </p>
                 </div>
                 <button
@@ -801,7 +834,7 @@ export default function App() {
                   ) : (
                     <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                   )}
-                  <span>{generandoIA ? 'Generando...' : 'Probar Guión con Gemini Pro'}</span>
+                  <span>{generandoIA ? 'Generando...' : 'Probar Guión con Gemini'}</span>
                 </button>
               </div>
 
@@ -813,8 +846,8 @@ export default function App() {
                       Prompt Maestro del Guión
                     </label>
                     <div className="flex items-center gap-1.5 text-[11px] font-mono">
-                      <span className="text-indigo-400 font-semibold">Gemini 1.5 Pro</span>
-                      <span className="text-slate-500 hidden sm:inline">· Modo Pro / Razonamiento Profundo Activo</span>
+                      <span className="text-indigo-400 font-semibold">Gemini 3.8 Flash</span>
+                      <span className="text-slate-500 hidden sm:inline">· Generación Ultra Rápida y Precisa</span>
                     </div>
                   </div>
                   <textarea
@@ -1466,7 +1499,7 @@ export default function App() {
                   <button
                     onClick={() =>
                       copiarTexto(
-                        `CREATE TABLE IF NOT EXISTS canal_config (\n    id SERIAL PRIMARY KEY,\n    prompt_maestro TEXT NOT NULL,\n    palabras_clave_nicho TEXT DEFAULT 'finanzas, productividad, tecnologia, ciencia',\n    categoria_youtube VARCHAR(10) DEFAULT '27',\n    plantilla_descripcion TEXT DEFAULT '💡 Suscríbete para contenido nuevo a diario.\\n\\n#Shorts #Aprender #Tips',\n    voz_locutor VARCHAR(50) DEFAULT 'es-ES-Studio-C',\n    formato VARCHAR(20) DEFAULT 'short',\n    frecuencia VARCHAR(30) DEFAULT 'diario',\n    hora_publicacion VARCHAR(10) DEFAULT '07:00',\n    activo BOOLEAN DEFAULT true,\n    limite_diario_manual INT DEFAULT 3,\n    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL\n);\n\nCREATE TABLE IF NOT EXISTS publicaciones (\n    id BIGSERIAL PRIMARY KEY,\n    titulo TEXT NOT NULL,\n    descripcion TEXT,\n    guion TEXT NOT NULL,\n    tags TEXT[],\n    youtube_id VARCHAR(50),\n    youtube_url TEXT,\n    estado VARCHAR(30) DEFAULT 'pendiente',\n    error_log TEXT,\n    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL\n);`,
+                        `CREATE TABLE IF NOT EXISTS canal_config (\n    id SERIAL PRIMARY KEY,\n    prompt_maestro TEXT NOT NULL,\n    palabras_clave_nicho TEXT DEFAULT 'finanzas, productividad, tecnologia, ciencia',\n    categoria_youtube VARCHAR(10) DEFAULT '27',\n    plantilla_descripcion TEXT DEFAULT '💡 Suscríbete para contenido nuevo a diario.\\n\\n#Shorts #Aprender #Tips',\n    voz_locutor VARCHAR(50) DEFAULT 'es-ES-Studio-C',\n    formato VARCHAR(20) DEFAULT 'short',\n    frecuencia VARCHAR(30) DEFAULT 'diario',\n    hora_publicacion VARCHAR(10) DEFAULT '07:00',\n    activo BOOLEAN DEFAULT true,\n    limite_diario_manual INT DEFAULT 3,\n    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL\n);\n\nCREATE TABLE IF NOT EXISTS publicaciones (\n    id BIGSERIAL PRIMARY KEY,\n    titulo TEXT NOT NULL,\n    descripcion TEXT,\n    guion TEXT NOT NULL,\n    tags TEXT[],\n    youtube_id VARCHAR(50),\n    youtube_url TEXT,\n    estado VARCHAR(30) DEFAULT 'pendiente',\n    error_log TEXT,\n    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL\n);\n\nALTER TABLE canal_config DISABLE ROW LEVEL SECURITY;\nALTER TABLE publicaciones DISABLE ROW LEVEL SECURITY;\n\nGRANT ALL ON TABLE canal_config TO anon, authenticated, service_role;\nGRANT ALL ON TABLE publicaciones TO anon, authenticated, service_role;\nGRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;`,
                         'sql'
                       )
                     }

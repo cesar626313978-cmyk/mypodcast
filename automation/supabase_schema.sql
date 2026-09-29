@@ -33,28 +33,14 @@ CREATE TABLE IF NOT EXISTS publicaciones (
     created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Habilitar Row Level Security (RLS)
-ALTER TABLE canal_config ENABLE ROW LEVEL SECURITY;
-ALTER TABLE publicaciones ENABLE ROW LEVEL SECURITY;
+-- 3. Desactivar RLS o conceder acceso total a la Anon Key (ideal para uso personal autónomo)
+ALTER TABLE canal_config DISABLE ROW LEVEL SECURITY;
+ALTER TABLE publicaciones DISABLE ROW LEVEL SECURITY;
 
--- Políticas de lectura/escritura (para panel de control y worker)
-DROP POLICY IF EXISTS "Permitir lectura publica de configuracion" ON canal_config;
-CREATE POLICY "Permitir lectura publica de configuracion" ON canal_config FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Permitir actualizacion publica de configuracion" ON canal_config;
-CREATE POLICY "Permitir actualizacion publica de configuracion" ON canal_config FOR UPDATE USING (true);
-
-DROP POLICY IF EXISTS "Permitir insercion de configuracion" ON canal_config;
-CREATE POLICY "Permitir insercion de configuracion" ON canal_config FOR INSERT WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Permitir lectura de publicaciones" ON publicaciones;
-CREATE POLICY "Permitir lectura de publicaciones" ON publicaciones FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Permitir insercion de publicaciones" ON publicaciones;
-CREATE POLICY "Permitir insercion de publicaciones" ON publicaciones FOR INSERT WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Permitir actualizacion de publicaciones" ON publicaciones;
-CREATE POLICY "Permitir actualizacion de publicaciones" ON publicaciones FOR UPDATE USING (true);
+-- Concesión explícita de permisos sobre tablas y secuencias
+GRANT ALL ON TABLE canal_config TO anon, authenticated, service_role;
+GRANT ALL ON TABLE publicaciones TO anon, authenticated, service_role;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 
 -- Registro Semilla Inicial
 INSERT INTO canal_config (
@@ -68,7 +54,7 @@ INSERT INTO canal_config (
     'Explica un concepto científico o psicológico contraintuitivo de forma ágil, con un gancho inicial impactante en los primeros 3 segundos y una conclusión memorable. Duración estimada: 45 a 55 segundos.',
     'ciencia, psicologia, sesgos cognitivos, curiosidades',
     '27',
-    'es-ES-AlvaroNeural',
+    'es-ES-Studio-C',
     'short',
     true
 ) ON CONFLICT DO NOTHING;

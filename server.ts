@@ -16,7 +16,16 @@ app.use(express.json());
 
 // Initialize Gemini SDK if API key exists
 const geminiApiKey = process.env.GEMINI_API_KEY || '';
-const ai = geminiApiKey ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
+const ai = geminiApiKey
+  ? new GoogleGenAI({
+      apiKey: geminiApiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    })
+  : null;
 
 // =====================================================================
 // API 1: Generate Script with Anti-Repetition Guard (Gemini)
@@ -73,7 +82,7 @@ FORMATO DE RESPUESTA REQUERIDO (JSON ESTRICTO):
     let textOutput = '{}';
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-pro',
+        model: 'gemini-3.8-flash',
         contents: [
           {
             role: 'user',
@@ -87,9 +96,9 @@ FORMATO DE RESPUESTA REQUERIDO (JSON ESTRICTO):
       });
       textOutput = response.text || '{}';
     } catch (modelErr) {
-      console.warn('Fallo con gemini-1.5-pro, intentando con modelo alternativo:', modelErr);
+      console.warn('Fallo con gemini-3.8-flash, intentando con gemini-flash-latest:', modelErr);
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: [
           {
             role: 'user',
